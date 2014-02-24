@@ -94,7 +94,7 @@ static volatile sig_atomic_t progress_needs_updating = false;
 
 /// Signal handler for SIGALRM
 static void
-progress_signal_handler(int sig lzma_attribute((unused)))
+progress_signal_handler(int sig lzma_attribute((__unused__)))
 {
 	progress_needs_updating = true;
 	return;
@@ -211,7 +211,7 @@ message_set_files(unsigned int files)
 static void
 print_filename(void)
 {
-	if (files_total != 1 || filename != stdin_filename) {
+	if (!opt_robot && (files_total != 1 || filename != stdin_filename)) {
 		signals_block();
 
 		FILE *file = opt_mode == MODE_LIST ? stdout : stderr;
@@ -726,7 +726,11 @@ vmessage(enum message_verbosity v, const char *fmt, va_list ap)
 
 		progress_flush(false);
 
-		fprintf(stderr, "%s: ", progname);
+		// TRANSLATORS: This is the program name in the beginning
+		// of the line in messages. Usually it becomes "xz: ".
+		// This is a translatable string because French needs
+		// a space before a colon.
+		fprintf(stderr, _("%s: "), progname);
 		vfprintf(stderr, fmt, ap);
 		fputc('\n', stderr);
 
@@ -855,6 +859,17 @@ message_mem_needed(enum message_verbosity v, uint64_t memusage)
 	// the user might need to +1 MiB to get high enough limit.)
 	memusage = round_up_to_mib(memusage);
 
+	uint64_t memlimit = hardware_memlimit_get(opt_mode);
+
+	// Handle the case when there is no memory usage limit.
+	// This way we don't print a weird message with a huge number.
+	if (memlimit == UINT64_MAX) {
+		message(v, _("%s MiB of memory is required. "
+				"The limiter is disabled."),
+				uint64_to_str(memusage, 0));
+		return;
+	}
+
 	// With US-ASCII:
 	// 2^64 with thousand separators + " MiB" suffix + '\0' = 26 + 4 + 1
 	// But there may be multibyte chars so reserve enough space.
@@ -863,7 +878,6 @@ message_mem_needed(enum message_verbosity v, uint64_t memusage)
 	// Show the memory usage limit as MiB unless it is less than 1 MiB.
 	// This way it's easy to notice errors where one has typed
 	// --memory=123 instead of --memory=123MiB.
-	uint64_t memlimit = hardware_memlimit_get(opt_mode);
 	if (memlimit < (UINT32_C(1) << 20)) {
 		snprintf(memlimitstr, sizeof(memlimitstr), "%s B",
 				uint64_to_str(memlimit, 1));
@@ -1108,7 +1122,10 @@ message_help(bool long_help)
 "  -f, --force         force overwrite of output file and (de)compress links\n"
 "  -c, --stdout        write to standard output and don't delete input files"));
 
-	if (long_help)
+	if (long_help) {
+		puts(_(
+"      --single-stream decompress only the first stream, and silently\n"
+"                      ignore possible remaining input data"));
 		puts(_(
 "      --no-sparse     do not create sparse files when decompressing\n"
 "  -S, --suffix=.SUF   use the suffix `.SUF' on compressed files\n"
@@ -1116,6 +1133,7 @@ message_help(bool long_help)
 "                      omitted, filenames are read from the standard input;\n"
 "                      filenames must be terminated with the newline character\n"
 "      --files0[=FILE] like --files but use the null character as terminator"));
+	}
 
 	if (long_help) {
 		puts(_("\n Basic file format and compression options:\n"));
@@ -1135,6 +1153,10 @@ message_help(bool long_help)
 "                      does not affect decompressor memory requirements"));
 
 	if (long_help) {
+		puts(_(
+"      --block-size=SIZE\n"
+"                      when compressing to the .xz format, start a new block\n"
+"                      after every SIZE bytes of input; 0=disabled (default)"));
 		puts(_( // xgettext:no-c-format
 "      --memlimit-compress=LIMIT\n"
 "      --memlimit-decompress=LIMIT\n"

@@ -15,12 +15,11 @@
 extern void hardware_init(void);
 
 
-/// Set custom value for maximum number of coder threads.
-extern void hardware_threadlimit_set(uint32_t threadlimit);
+/// Set the maximum number of worker threads.
+extern void hardware_threads_set(uint32_t threadlimit);
 
-/// Get the maximum number of coder threads. Some additional helper threads
-/// are allowed on top of this).
-extern uint32_t hardware_threadlimit_get(void);
+/// Get the maximum number of worker threads.
+extern uint32_t hardware_threads_get(void);
 
 
 /// Set the memory usage limit. There are separate limits for compression
@@ -35,4 +34,4 @@ extern void hardware_memlimit_set(uint64_t new_memlimit,
 extern uint64_t hardware_memlimit_get(enum operation_mode mode);
 
 /// Display the amount of RAM and memory usage limits and exit.
-extern void hardware_memlimit_show(void) lzma_attribute((noreturn));
+extern void hardware_memlimit_show(void) lzma_attribute((__noreturn__));

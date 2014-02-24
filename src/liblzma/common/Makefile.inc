@@ -38,9 +38,15 @@ liblzma_la_SOURCES += \
 	common/index_encoder.h \
 	common/stream_buffer_encoder.c \
 	common/stream_encoder.c \
-	common/stream_encoder.h \
 	common/stream_flags_encoder.c \
 	common/vli_encoder.c
+
+if COND_THREADS
+liblzma_la_SOURCES += \
+	common/outqueue.c \
+	common/outqueue.h \
+	common/stream_encoder_mt.c
+endif
 endif
 
 if COND_MAIN_DECODER
