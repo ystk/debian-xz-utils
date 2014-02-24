@@ -68,9 +68,11 @@ parse_real(args_info *args, int argc, char **argv)
 		OPT_LZMA1,
 		OPT_LZMA2,
 
+		OPT_SINGLE_STREAM,
 		OPT_NO_SPARSE,
 		OPT_FILES,
 		OPT_FILES0,
+		OPT_BLOCK_SIZE,
 		OPT_MEM_COMPRESS,
 		OPT_MEM_DECOMPRESS,
 		OPT_NO_ADJUST,
@@ -94,6 +96,7 @@ parse_real(args_info *args, int argc, char **argv)
 		{ "force",        no_argument,       NULL,  'f' },
 		{ "stdout",       no_argument,       NULL,  'c' },
 		{ "to-stdout",    no_argument,       NULL,  'c' },
+		{ "single-stream", no_argument,      NULL,  OPT_SINGLE_STREAM },
 		{ "no-sparse",    no_argument,       NULL,  OPT_NO_SPARSE },
 		{ "suffix",       required_argument, NULL,  'S' },
 		// { "recursive",      no_argument,       NULL,  'r' }, // TODO
@@ -103,6 +106,7 @@ parse_real(args_info *args, int argc, char **argv)
 		// Basic compression settings
 		{ "format",       required_argument, NULL,  'F' },
 		{ "check",        required_argument, NULL,  'C' },
+		{ "block-size",   required_argument, NULL,  OPT_BLOCK_SIZE },
 		{ "memlimit-compress",   required_argument, NULL, OPT_MEM_COMPRESS },
 		{ "memlimit-decompress", required_argument, NULL, OPT_MEM_DECOMPRESS },
 		{ "memlimit",     required_argument, NULL,  'M' },
@@ -175,8 +179,9 @@ parse_real(args_info *args, int argc, char **argv)
 			break;
 
 		case 'T':
-			hardware_threadlimit_set(str_to_uint64(
-					"threads", optarg, 0, UINT32_MAX));
+			// The max is from src/liblzma/common/common.h.
+			hardware_threads_set(str_to_uint64("threads",
+					optarg, 0, 16384));
 			break;
 
 		// --version
@@ -368,6 +373,15 @@ parse_real(args_info *args, int argc, char **argv)
 			break;
 		}
 
+		case OPT_BLOCK_SIZE:
+			opt_block_size = str_to_uint64("block-size", optarg,
+					0, LZMA_VLI_MAX);
+			break;
+
+		case OPT_SINGLE_STREAM:
+			opt_single_stream = true;
+			break;
+
 		case OPT_NO_SPARSE:
 			io_no_sparse();
 			break;
@@ -438,7 +452,7 @@ parse_environment(args_info *args, char *argv0, const char *varname)
 		} else if (prev_was_space) {
 			prev_was_space = false;
 
-			// Keep argc small enough to fit into a singed int
+			// Keep argc small enough to fit into a signed int
 			// and to keep it usable for memory allocation.
 			if (++argc == my_min(
 					INT_MAX, SIZE_MAX / sizeof(char *)))
