@@ -6,3 +6,4 @@ man-date
 man-xz-lvv-minver
 xz-lvv-empty-block-minver
 decoder-check-first-0x00
+xzgrep-ZDI-CAN-16587.patch
